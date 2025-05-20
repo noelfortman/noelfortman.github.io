@@ -13,11 +13,15 @@ Note that this app is intended for showcase purposes only - to show the power of
 * Continue browsing while AI processes your selection
 * Review generated flashcards later when you're ready to study
 
+<img width="422" alt="Screenshot 2025-05-20 at 9 01 48 AM" src="https://github.com/user-attachments/assets/3c2bd518-05dc-460b-abae-1efb4c500633" />
+
 Behind the scenes, SmartSnip leverages Amazon Bedrock's foundation models to transform raw content into effective learning materials. The extension doesn't just copy your text - it tries to understand it, extract key concepts, and formulates questions that test true comprehension.
 
 ### How does it help me learn?
 
 Each time you review a card, the AI can subtly rephrase questions and answers, preventing the common pitfall of memorizing specific wording rather than grasping concepts.
+
+<img width="1584" alt="Screenshot 2025-05-20 at 9 02 05 AM" src="https://github.com/user-attachments/assets/a2ace54f-bbf5-410b-8c5e-a2ae321a4c61" />
 
 This approach aligns with cognitive science research showing that:
 * Information presented in slightly different contexts enhances long-term retention
