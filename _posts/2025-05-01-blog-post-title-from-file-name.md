@@ -28,6 +28,9 @@ This approach aligns with cognitive science research showing that:
 * Testing yourself on knowledge is more effective than passive review
 * Spaced repetition with varied questioning leads to deeper understanding
 
+<img width="1584" alt="Screenshot 2025-05-20 at 9 02 17 AM" src="https://github.com/user-attachments/assets/ccfe06b6-da6d-4218-9ff6-8e624fbb08f0" />
+<img width="1584" alt="Screenshot 2025-05-20 at 9 02 24 AM" src="https://github.com/user-attachments/assets/e5e19ec3-2821-4db7-9998-068a5236652a" />
+
 ### What are the technical details?
 
 SmartSnip harnesses the power of Amazon Bedrock's large language models to:
