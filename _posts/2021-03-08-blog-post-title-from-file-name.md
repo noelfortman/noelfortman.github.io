@@ -1,32 +1,40 @@
-## Blog Post Title From First Header
+## SmartSnip: Learning with AI-Powered Dynamic Flashcards
 
-Due to a plugin called `jekyll-titles-from-headings` which is supported by GitHub Pages by default. The above header (in the markdown file) will be automatically used as the pages title.
+Have you ever spent hours creating flashcards only to realize you're memorizing the cards rather than truly understanding the material? Or found yourself constantly switching between tabs, copying important information into your notes app? If so, you're not alone.
 
-If the file does not start with a header, then the post title will be derived from the filename.
+That's why I built this app for my own AWS certification study. SmartSnip is a Chrome extension that transforms how you capture, process, and retain information from the web. With just a right-click, it converts any selected text into intelligently crafted flashcards, using advanced AI to ensure you're testing your understanding, not just memorization skills.
 
-This is a sample blog post. You can talk about all sorts of fun things here.
+### How does it work?
 
----
+    Select text on any webpage that contains information you want to remember
+    Right-click and choose "Send to SmartSnip"
+    Continue browsing while AI processes your selection
+    Review generated flashcards later when you're ready to study
 
-### This is a header
+Behind the scenes, SmartSnip leverages Amazon Bedrock's foundation models to transform raw content into effective learning materials. The extension doesn't just copy your text - it tries to understand it, extract key concepts, and formulates questions that test true comprehension.
 
-#### Some T-SQL Code
+### How does it help me learn?
 
-```tsql
-SELECT This, [Is], A, Code, Block -- Using SSMS style syntax highlighting
-    , REVERSE('abc')
-FROM dbo.SomeTable s
-    CROSS JOIN dbo.OtherTable o;
-```
+Each time you review a card, the AI can subtly rephrase questions and answers, preventing the common pitfall of memorizing specific wording rather than grasping concepts.
 
-#### Some PowerShell Code
+This approach aligns with cognitive science research showing that:
 
-```powershell
-Write-Host "This is a powershell Code block";
+    Information presented in slightly different contexts enhances long-term retention
+    Testing yourself on knowledge is more effective than passive review
+    Spaced repetition with varied questioning leads to deeper understanding
 
-# There are many other languages you can use, but the style has to be loaded first
+### What are the technical details?
 
-ForEach ($thing in $things) {
-    Write-Output "It highlights it using the GitHub style"
+SmartSnip harnesses the power of Amazon Bedrock's large language models to:
+
+    Extract essential information from complex content
+    Generate questions that target core concepts rather than superficial details
+    Provide clear, concise answers that reinforce understanding
+    Automatically determine the appropriate difficulty level based on content
+
+The extension uses Nova Pro to process your snippets instantly, without sending sensitive data to third-party servers. Your knowledge base stays private and secure while benefiting from cutting-edge AI. Your knowledge base is stored locally and is only interacted with through the chrome extension.
+
+What you learn, stays with you.
+
 }
 ```
