@@ -1,5 +1,3 @@
-Here you can say lots of fun things about your site.
+Hi, I'm Noel. I'll write a bit here about projects that I'm building with AWS technology and AI/ML.
 
-Maybe say a some things about yourself.
-
-Or maybe what you plan to blog about.
+Thanks for reading!
