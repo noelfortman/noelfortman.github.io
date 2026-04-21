@@ -440,7 +440,7 @@
   </div>
 
   <div class="viz-box-small">
-    <iframe src="brain-feature-topography.html" title="Harmonic Mind Feature Topography" scrolling="no"></iframe>
+    <iframe src="brain-feature-topography.html" title="Harmonic Mind Feature Topography" scrolling="no" data-mobile-h="1200"></iframe>
   </div>
 
   <div class="content">
@@ -468,7 +468,7 @@
   </div>
 
   <div class="viz-box">
-      <iframe src="pipeline-visualization.html?stage=1" scrolling="no"></iframe>
+      <iframe src="pipeline-visualization.html?stage=1" scrolling="no" data-mobile-h="1350"></iframe>
   </div>
 
   <div class="content">
@@ -479,7 +479,7 @@
   </div>
 
   <div class="viz-box">
-      <iframe src="pipeline-visualization.html?stage=2" scrolling="no"></iframe>
+      <iframe src="pipeline-visualization.html?stage=2" scrolling="no" data-mobile-h="1200"></iframe>
   </div>
 
   <div class="content">  
@@ -493,7 +493,7 @@
   </div>
 
   <div class="viz-box">
-      <iframe src="pipeline-visualization.html?stage=3" scrolling="no"></iframe>
+      <iframe src="pipeline-visualization.html?stage=3" scrolling="no" data-mobile-h="1200"></iframe>
   </div>
 
   <div class="content">  
@@ -544,7 +544,7 @@
 
     <p>At the smallest scale, it is a tool for musicological analysis, a way of answering questions like "what makes a Bach chorale harmonically recognisable as Bach?" with something more precise than voice leading or use of suspensions. The constraint rankings and motif statistics give you a quantitative comparison across composers and periods.</p>
 
-    <p>Interpretability research on musical models is something that I believe could offer composers greater insight into works they study or even their own. When you run your own music through this pipeline, what features activate? It could show which stylistic constraint rankings you satisfy versus those you violated? Are there patterns in your own music that you haven't consciously noticed? Music theory has always been, at its best, a tool for self-understanding as much as analysis of other's works.</p>
+    <p>Interpretability research on musical models is something that I believe could offer composers greater insight into works they study or even their own. When you run your own music through this pipeline, what features activate? Could it show which stylistic constraint rankings you satisfy versus those you are violating? Are there patterns in your own music that you haven't consciously noticed? Music theory has always been, at its best, a tool for self-understanding as much as analysis of other's works.</p>
 
     <p>At a larger scale still, there is a genuine scientific question here about the nature of musical structure. If similar constraint rankings emerge across composers who never heard each other's music, this may act as insight into deep features of how human pitch perception and cognition work. If the features found are wildly different across traditions, that is equally interesting evidence about the variety and cultural learning of harmonic systems.</p>
 
@@ -584,7 +584,10 @@
       var containerW = box.getBoundingClientRect().width;
       var scale = Math.min(1, containerW / DESIGN_W);
       var isSmall = box.classList.contains('viz-box-small');
-      var designH = isSmall ? 600 : 1000;
+
+      // Use data-mobile-h on mobile if specified, otherwise fall back to defaults
+      var mobileH = parseInt(iframe.getAttribute('data-mobile-h'));
+      var designH = (isMobile && mobileH) ? mobileH : (isSmall ? 600 : 1000);
 
       iframe.style.width           = DESIGN_W + 'px';
       iframe.style.height          = designH + 'px';
