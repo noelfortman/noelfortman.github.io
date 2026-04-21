@@ -393,6 +393,24 @@
     .s1-layout, .s2-layout, .s3-layout, .s5-layout { grid-template-columns: 1fr; }
     .s4-layout { grid-template-columns: 1fr; }
   }
+
+  /* ── Mobile overrides — active when ?m=1 is passed from parent ── */
+  /* Enlarges the Re-run and New Token buttons to be tappable at ~0.35 scale  */
+  body.mobile #s1-replay,
+  body.mobile #s3-resample {
+    min-height: 130px;
+    min-width: 320px;
+    font-size: 32px;
+    padding: 28px 60px;
+    letter-spacing: 0.06em;
+  }
+
+  /* Composer chips in Stage 2 */
+  body.mobile #x-composers .chip {
+    font-size: 28px;
+    padding: 30px 50px;
+    min-height: 120px;
+  }
 </style>
 </head>
 <body>
@@ -1354,6 +1372,13 @@ drawConfusion();
 
 // resize
 addEventListener('resize', () => { drawSAE(); drawTransformer(); drawTree(1); });
+</script>
+
+<script>
+// Apply mobile layout when parent passes ?m=1
+if (new URLSearchParams(location.search).get('m') === '1') {
+  document.body.classList.add('mobile');
+}
 </script>
 </body>
 </html>
