@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mechanistic Interpretability in Harmonic Modeling</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@300;400&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --ink: #1a1410;
+    --paper: #f5f0e8;
+    --paper-dark: #ede7d9;
+    --accent: #8b3a1a;
+    --accent-light: #c4602e;
+    --rule: #c8bfad;
+    --muted: #7a7060;
+    --code-bg: #1e1a14;
+    --code-fg: #d4c9b0;
+    --code-accent: #e8a070;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Libre Baskerville', Georgia, serif;
+    font-size: 18px;
+    line-height: 1.8;
+    overflow-x: hidden;
+  }
+
+  /* Grain overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.6;
+  }
+
+  /* ── MASTHEAD ── */
+  .masthead {
+    border-bottom: 3px double var(--rule);
+    padding: 28px 0 20px;
+    text-align: center;
+    position: relative;
+    background: var(--paper);
+  }
+
+  .masthead-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .masthead-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 13px;
+    font-weight: 300;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--ink);
+  }
+
+  /* ── HERO ── */
+  .hero {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 80px 40px 60px;
+    position: relative;
+  }
+
+  .issue-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 24px;
+  }
+
+  h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(40px, 7vw, 72px);
+    font-weight: 300;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    margin-bottom: 16px;
+  }
+
+  h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .subtitle {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px;
+    font-weight: 300;
+    font-style: italic;
+    color: var(--muted);
+    line-height: 1.5;
+    margin-bottom: 40px;
+    max-width: 600px;
+  }
+
+  .byline {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding-top: 24px;
+    border-top: 1px solid var(--rule);
+  }
+
+  .byline-text {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .byline-sep {
+    width: 1px;
+    height: 28px;
+    background: var(--rule);
+  }
+
+  /* ── BODY CONTENT ── */
+  .content {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0 40px 10px;
+  }
+
+  /* Drop cap for first paragraph */
+  .dropcap::first-letter {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 5.2em;
+    font-weight: 400;
+    line-height: 0.8;
+    float: left;
+    margin: 0.08em 0.1em 0 0;
+    color: var(--accent);
+  }
+
+  p {
+    margin-bottom: 1.6em;
+    color: var(--ink);
+  }
+
+  /* ── SECTION HEADINGS ── */
+  h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 30px;
+    font-weight: 400;
+    font-style: italic;
+    color: var(--ink);
+    margin: 64px 0 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  h3 {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 40px 0 14px;
+  }
+
+  /* ── PULL QUOTE ── */
+  .pull-quote {
+    margin: 48px -40px;
+    padding: 32px 48px;
+    background: var(--paper-dark);
+    border-left: 4px solid var(--accent);
+    position: relative;
+  }
+
+  .pull-quote p {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 24px;
+    font-weight: 300;
+    font-style: italic;
+    line-height: 1.5;
+    color: var(--ink);
+    margin: 0;
+  }
+
+  .pull-quote cite {
+    display: block;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 12px;
+    font-style: normal;
+  }
+
+  /* ── CODE / TECHNICAL BLOCKS ── */
+  .tech-block {
+    margin: 36px 0;
+    border: 1px solid #2e2820;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .tech-block-label {
+    background: var(--code-bg);
+    border-bottom: 1px solid #2e2820;
+    padding: 8px 16px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .tech-block-body {
+    background: var(--code-bg);
+    padding: 20px 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    line-height: 1.75;
+    color: var(--code-fg);
+    overflow-x: auto;
+  }
+
+  .tech-block-body .kw { color: #a0c8e0; }
+  .tech-block-body .val { color: var(--code-accent); }
+  .tech-block-body .cm { color: #5a5248; font-style: italic; }
+  .tech-block-body .nt { color: #90c080; }
+
+  /* ── PIPELINE DIAGRAM ── */
+  .pipeline {
+    margin: 40px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .pipeline-step {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    opacity: 0;
+    transform: translateX(-16px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+
+  .pipeline-step.visible {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  .pipeline-num {
+    width: 40px;
+    flex-shrink: 0;
+    background: var(--ink);
+    color: var(--paper);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    letter-spacing: 0.1em;
+  }
+
+  .pipeline-content {
+    flex: 1;
+    padding: 14px 20px;
+    background: var(--paper-dark);
+    border: 1px solid var(--rule);
+    border-left: none;
+  }
+
+  .pipeline-content strong {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .pipeline-content span {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 16px;
+    color: var(--muted);
+    font-style: italic;
+  }
+
+  .pipeline-arrow {
+    text-align: center;
+    color: var(--rule);
+    font-size: 18px;
+    line-height: 1;
+    padding: 2px 0;
+    margin-left: 20px;
+  }
+
+  /* ── ASIDE ── */
+  .aside {
+    float: right;
+    width: 240px;
+    margin: 8px -80px 24px 32px;
+    padding: 20px;
+    background: var(--paper-dark);
+    border-top: 2px solid var(--ink);
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 15px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .aside strong {
+    display: block;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+
+  /* ── RULE DIVIDER ── */
+  .ornament {
+    text-align: center;
+    color: var(--rule);
+    font-size: 20px;
+    letter-spacing: 0.5em;
+    margin: 48px 0;
+    user-select: none;
+  }
+
+  /* ── FOOTNOTE ── */
+  .footnote {
+    margin-top: 64px;
+    padding-top: 24px;
+    border-top: 1px solid var(--rule);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.8;
+  }
+
+  .footnote a {
+    color: var(--accent);
+    text-decoration: none;
+    border-bottom: 1px solid var(--accent-light);
+  }
+
+  /* ── VIZ CONTAINER ── */
+  .viz-box {
+    width: 90%; /* Leaves a nice breathing room on smaller screens */
+    max-width: 1000px; /* Caps the size on large monitors */
+    height: 1000px;
+    margin: 10px auto; /* The 'auto' strictly handles the left/right centering */
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    overflow: hidden;
+    background: #0a0805; /* Dark background matching the viz */
+  }
+
+  .viz-box-small {
+    width: 90%; /* Leaves a nice breathing room on smaller screens */
+    max-width: 1000px; /* Caps the size on large monitors */
+    height: 600px;
+    margin: 10px auto; /* The 'auto' strictly handles the left/right centering */
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    overflow: hidden;
+    background: #0a0805; /* Dark background matching the viz */
+  }
+
+  .viz-box-small iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+  }
+  
+  @media (max-width: 700px) {
+    .viz-box-small { height: 450px; }
+  }
+
+  .viz-box iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+  }
+  
+  @media (max-width: 700px) {
+    .viz-box { height: 450px; }
+  }
+
+  /* ── ANIMATION ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .hero { animation: fadeUp 0.8s ease both; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 700px) {
+    .aside { float: none; width: 100%; margin: 0 0 24px 0; }
+    .pull-quote { margin: 36px 0; }
+    h1 { font-size: 38px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-label">Research &amp; Practice</div>
+  <div class="masthead-title">Harmonic Insights</div>
+</header>
+
+<article>
+  <div class="hero">
+    <span class="issue-tag">Music Theory ✦ Machine Learning ✦ Linguistics</span>
+    <h1>Hidden <em>Grammars</em> in Music</h1>
+    <p class="subtitle">What if a machine could find hidden rules of harmonic language that humans might otherwise miss?</p>
+    <div class="byline">
+      <span class="byline-text">Research Notes</span>
+      <div class="byline-sep"></div>
+      <span class="byline-text">2026</span>
+      <div class="byline-sep"></div>
+      <span class="byline-text">5-10 min read</span>
+    </div>
+  </div>
+
+  </div> <div class="viz-box-small">
+    <iframe src="brain-feature-topography.html" title="Harmonic Mind Feature Topography" scrolling="no"></iframe>
+  </div>
+
+  <div class="content">
+
+    <p class="dropcap">Early on in my career, I was convinced of a structural connection between three core interests of mine: linguistics, music, and computer science. Phonological rules in human language tend to cluster into a small set of near-universal patterns across many different cultures and families. The same could be said of harmony: certain progressions recur not just in Western classical music but across jazz, folk traditions, and systems that developing in isolation from one another. Within discrete math and formal grammars, we have tools for describing these kinds of rule-governed, recursive structures.</p>
+
+    <p>When I raised these connections with colleagues over the years, most found it intriguing, though a few found it a stretch. Around a decade ago, I discussed some of these ideas with the late David Cope, a renowned figure in algorithmic music. Cope's work in algorithmic composition was already provoking furious debate among composers and musicologists. There was at least one thing we were completely aligned on: computational approaches could reveal deep structural truths in music that human analysis might not be able to easily find.</p>
+
+    <div class="pull-quote">
+      <p>"Developing models aimed not at generating music but to find deep connections within it."</p>
+    </div>
+
+    <p>At that time, the project I had hoped to build just wasn't as easy to build in those days. The compute, models, and corpora needed wasn't there. I've made great strides towards implementing it as of late.</p>
+
+    <div class="ornament">— > ✦ < —</div>
+
+    <h2>Music as Formal Language</h2>
+
+    <p>In formal language theory, a grammar <i>G</i> is defined as a 4-tuple (<i>V</i>, &Sigma;, <i>R</i>, <i>S</i>) that defines valid strings. Rather than straightforward linear sequences, a grammar defines a <strong>derivation tree</strong>. This is a hierarchical structure where terminal symbols (words, or in our case, chords) are governed by non-terminal variables. Just as a sentence might rely on a nested syntax of noun and verb phrases to convey meaning, musical sequences rely on a deeper structure that tells us how local events contribute to a more global form.</p>
+
+    <p>Music can be said to exhibit this recursive property through functional hierarchy. In this interpretation, a chord progression is not just a chain of events generated by something similar to a Markov Chain. It is a nested system where cadences resolve phrases, and phrases constitute larger sections. A <b>V</b> chord does more than just follow a <b>I</b> chord; it is <i>subordinate</i> to what a theorist might call a tonal prolongation. This structural relationship, codified in theoretical frameworks like <strong>Schenkerian analysis</strong> and even more formally in <strong>GTTM (Generative Theory of Tonal Music)</strong>, giving us a view of musical information as a layered architecture rather than just a flat stream of data.</p>
+
+    <h2> I. Induce a PCFG</h2>
+    
+  </div>
+
+  <div class="viz-box">
+      <iframe src="pipeline-visualization.html?stage=1" scrolling="no"></iframe>
+  </div>
+
+  <div class="content">
+
+    <p>My pipeline operationalizes this via Step 1: use a harmonic dataset of expert-labeled works, to induce a <strong>Probabilistic Context-Free Grammar (PCFG)</strong>. By mapping harmonic functions to non-terminals like <code>T</code> (Tonic), <code>P</code> (Predominant), and <code>D</code> (Dominant), I use an Expectation-Maximization algorithm to learn recursive production rules. A couple examples would be <em>S → T D</em> or <em>D → [Ger6] D</em>. This allows the system to consistently evaluate a piece across thousands of examples simultaneously.</p>
+
+    <h2>II. A Composer-Conditioned Transformer</h2>
+  </div>
+
+  <div class="viz-box">
+      <iframe src="pipeline-visualization.html?stage=2" scrolling="no"></iframe>
+  </div>
+
+  <div class="content">  
+
+    <p>While a grammar provides a theory of structure, it does not capture idiosyncrasies, in our case, style. In following steps, I implement a <strong>composer-conditioned transformer</strong>. The attention mechanism learns to correlate specific PCFG-derived structures with the statistical fingerprints of individual composers, effectively learning to differentiate the dialect of one composer from another.</p>
+
+    <p>This transformer is just a means to an end. What we're really interested in is what's happening inside the network as it processes these sequences. The internal representations, called the <strong>residual stream</strong>, encode everything the model has learned about harmonic context. Those representations are where the deeper knowledge resides, and Step 3 is designed to reveal them.</p>
+
+
+    <h2>III. Mechanistic Interpretability</h2>
+  </div>
+
+  <div class="viz-box">
+      <iframe src="pipeline-visualization.html?stage=3" scrolling="no"></iframe>
+  </div>
+
+  <div class="content">  
+
+    <p>Mechanistic interpretability is all about understanding the black-box approach to AI and machine learning that we commonly use. Understanding how, when our systems solve problems, <em>how</em> do they solve it? What internal features activate? What do they represent in the world?</p>
+
+    <p>My next step applies a technique called a <strong>Sparse Autoencoder (SAE)</strong> to the transformer's internal activations. The SAE learns a  larger dictionary of features compared to the 128-dimensional residual stream. However, at any given moment, it is constrained to having a handful of those features active at once. This sparsity what forces the SAE to find features that correspond to genuinely distinct concepts in the data.</p>
+
+    <p>With SAEs applied to harmonic data, I can find features that appear to correspond to things like: <em>Neapolitan chord preference</em>, <em>chromatic mediant tendency</em>, <em>modal mixture frequency</em>. These are patterns the model found in the data, which one can then interpret for human understandable results.</p>
+
+    <div class="pull-quote">
+      <p>"The sparsity constraint forces the model to find features that correspond to genuinely distinct musical concepts."</p>
+    </div>
+
+    <h2>IV. Latent Features and Musical Rules</h2>
+  </div>
+
+  <div class="viz-box">
+      <iframe src="pipeline-visualization.html?stage=4" scrolling="no"></iframe>
+  </div>
+
+  <div class="content">  
+
+    <p>Step 4 is where linguistics, music theory, and machine learning explicitly converge. I take the SAE features and attempt to formalise them in two complementary frameworks drawn from theoretical linguistics.</p>
+
+    <p>The first is a <strong>Tree-Adjoining Grammar (TAG)</strong>, an extension of context-free grammar that can express the long-range dependencies that standard grammars can't capture. These are exactly the kind of dependencies that appear in music when a tonic at the start of a phrase still exerts structural influence on the final cadence. The second is <strong>Optimality Theory (OT)</strong>, a constraint-based framework where competing violable constraints are ranked to determine which output wins. OT has been enormously productive in phonology, a field of great interest to me. The hypothesis here is that it might capture something real about how harmonic preference interacts in different compositional styles.</p>
+
+    <h2>V. Validation</h2>
+  </div>
+
+  <div class="viz-box">
+      <iframe src="pipeline-visualization.html?stage=5" scrolling="no"></iframe>
+  </div>
+
+  <div class="content">  
+
+    <p>The validation step (Step 5) then tests whether these extracted rules actually generalised. Here, I look to see if the style markers learned from one set of pieces correctly attribute held-out pieces to their composers.</p>
+
+    <div class="ornament">— > ✦ < —</div>
+
+    <h2>Early Findings</h2>
+
+    <p>Early runs of this pipeline have been promising, looking to point toward real insight. Larger runs of this pipeline are currently in progress. The composer attribution seems to be validating that the features the SAE is finding are genuinely discriminative. More interestingly, the constraint rankings extracted through the OT formalisation appear to reflect musically interpretable differences. The relative weights assigned to different harmonic rules vary in ways that are coherent with what expert analysts know about these composers' styles.</p>
+
+    <p>You can see in the visualizations, these light up genuinely different regions of the feature space. The patterns are neither random or obvious. The model was given no prior theory about what you're supposed to find.</p>
+
+    <h2>What I Hope This Becomes</h2>
+
+    <p>At the smallest scale, it is a tool for musicological analysis, a way of answering questions like "what makes a Bach chorale harmonically recognisable as Bach?" with something more precise than voice leading or use of suspensions. The constraint rankings and motif statistics give you a quantitative comparison across composers and periods.</p>
+
+    <p>Interpretability research on musical models is something that I believe could offer composers greater insight into works they study or even their own. When you run your own music through this pipeline, what features activate? It could show which stylistic constraint rankings you satisfy versus those you violating? Are there patterns in your own music that you haven't consciously noticed? Music theory has always been, at its best, a tool for self-understanding as much as analysis of other's works.</p>
+
+    <p>At a larger scale still, there is a genuine scientific question here about the nature of musical structure. If similar constraint rankings emerge across composers who never heard each other's music, this may act as insight into deep features of how human pitch perception and cognition work. If the features found are wildly different across traditions, that is equally interesting evidence about the variety and cultural learning of harmonic systems.</p>
+
+    <p>Either answer is worth having. We'll find out what the data says.</p>
+
+    
+    <div class="footnote">
+      <p>* <i>Some data in the Step 1-5 visualizations is synthetic for explanatory purposes.</i> * </p>
+    </div>
+
+    <div class="ornament">— > ✦ < —</div>
+
+  </div>
+  
+</article>
+
+</body>
+</html>

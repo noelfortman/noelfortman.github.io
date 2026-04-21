@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Harmonic Mind: Feature Topography</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-0:     #0a0805;
+    --bg-1:     #14100a;
+    --ink:      #1a1410;
+    --paper:    #f5f0e8;
+    --muted:    rgba(216, 204, 180, 0.42);
+    --muted-2:  rgba(216, 204, 180, 0.22);
+    --rule:     rgba(200, 191, 173, 0.16);
+    --accent:   #c4602e;
+    --accent-2: #e8a070;
+    --accent-3: #8b3a1a;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 100vw; height: 100vh;
+    background: radial-gradient(ellipse at 50% 45%, var(--bg-1) 0%, var(--bg-0) 70%);
+    color: var(--paper);
+    font-family: 'DM Mono', monospace;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  /* grain */
+  body::before {
+    content:'';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.055'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 100; mix-blend-mode: overlay;
+  }
+
+  #canvas {
+    position: fixed; inset: 0; display: block;
+  }
+
+  /* ── Masthead ── */
+  .masthead {
+    position: fixed; top: 0; left: 0; right: 0;
+    text-align: center; padding: 22px 0 16px;
+    border-bottom: 1px double var(--rule);
+    z-index: 20; pointer-events: none;
+    background: linear-gradient(to bottom, rgba(10,8,5,0.85), rgba(10,8,5,0));
+  }
+  .m-eyebrow {
+    font-size: 9px; letter-spacing: 0.35em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 6px;
+  }
+  .m-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 13px; font-weight: 300;
+    letter-spacing: 0.25em; text-transform: uppercase;
+    color: var(--paper);
+  }
+
+  /* ── Piece panel (right, minimal) ── */
+  #panel {
+    position: fixed; right: 28px; top: 92px; bottom: 92px;
+    width: 180px; z-index: 15;
+    display: flex; flex-direction: column;
+    align-items: flex-end;
+  }
+  #panel .p-label {
+    width: 100%;
+    text-align: right;
+    font-size: 8.5px; letter-spacing: 0.3em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 12px;
+    padding-bottom: 10px; border-bottom: 1px solid var(--rule);
+  }
+  .ctabs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 14px; justify-content: flex-end;}
+  .ctab {
+    font-family: 'DM Mono', monospace; font-size: 8.5px;
+    letter-spacing: 0.08em;
+    padding: 4px 8px;
+    border: 1px solid var(--rule);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .ctab:hover { color: var(--accent-2); border-color: rgba(196,96,46,0.4); }
+  .ctab.active { color: var(--bg-0); background: var(--accent-2); border-color: var(--accent-2); }
+
+  #piece-list {
+    flex: 1; overflow-y: auto; padding-left: 4px;
+    scrollbar-width: thin; scrollbar-color: rgba(200,191,173,0.2) transparent;
+  }
+  #piece-list::-webkit-scrollbar { width: 2px; }
+  #piece-list::-webkit-scrollbar-thumb { background: rgba(200,191,173,0.25); }
+
+  .pitem {
+    text-align: right;
+    padding: 10px 12px 10px 2px;
+    cursor: pointer;
+    border-right: 1px solid var(--rule);
+    transition: all 0.25s;
+    margin-bottom: 1px;
+  }
+  .pitem:hover { border-right-color: var(--accent-2); }
+  .pitem:hover .pt { color: var(--accent-2); }
+  .pitem.active { border-right: 1px solid var(--accent); }
+  .pitem.active .pt { color: var(--accent-2); font-style: italic; }
+  .pt {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 15px; font-weight: 300;
+    color: var(--paper);
+    line-height: 1.3; margin-bottom: 3px;
+    transition: color 0.25s;
+  }
+  .ps {
+    font-size: 8px; color: var(--muted);
+    letter-spacing: 0.12em; text-transform: uppercase;
+  }
+
+  /* ── Current piece title (bottom-left) ── */
+  #now-playing {
+    position: fixed; left: 32px; bottom: 32px; z-index: 15;
+    max-width: 420px; pointer-events: none;
+  }
+  #np-eyebrow {
+    font-size: 9px; letter-spacing: 0.3em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 10px;
+  }
+  #np-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 30px; font-weight: 300; font-style: italic;
+    color: var(--paper);
+    line-height: 1.15; margin-bottom: 8px;
+    text-shadow: 0 0 40px rgba(196,96,46,0.25);
+  }
+  #np-sub {
+    font-size: 9.5px; letter-spacing: 0.15em;
+    color: var(--muted);
+  }
+
+  /* ── Stats (top-left) ── */
+  #stats {
+    position: fixed; left: 32px; top: 92px; z-index: 15;
+    pointer-events: none;
+  }
+  .stat-row {
+    display: flex; align-items: baseline; gap: 10px;
+    margin-bottom: 8px;
+  }
+  .stat-v {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; font-weight: 400;
+    color: var(--accent-2); line-height: 1;
+    min-width: 22px;
+  }
+  .stat-l {
+    font-size: 8px; letter-spacing: 0.22em;
+    color: var(--muted); text-transform: uppercase;
+  }
+
+  /* ── Legend (bottom-right) ── */
+  #legend {
+    position: fixed; right: 28px; bottom: 32px; z-index: 15;
+    pointer-events: none; width: 138px;
+    /* Ensures child elements (rows) stack correctly to the right */
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+  }
+
+  .leg-title {
+    width: 100%;
+    text-align: right;
+    font-size: 8px; letter-spacing: 0.3em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 10px;
+    padding-bottom: 8px; border-bottom: 1px solid var(--rule);
+  }
+
+  .leg-row {
+    display: flex; 
+    align-items: center; 
+    gap: 9px;
+    /* This pushes the row to the right and flips the dot to the right side of the text */
+    flex-direction: row-reverse;
+    
+    font-size: 9px; color: var(--muted); letter-spacing: 0.04em;
+    margin-bottom: 5px;
+  }
+
+  .leg-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
+  /* ── Floating cluster labels ── */
+  .floating-label {
+    position: fixed; z-index: 14;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    transition: opacity 0.6s;
+  }
+  .fl-inner {
+    position: relative;
+    padding: 7px 11px 7px 13px;
+    border-left: 1px solid var(--accent);
+    background: rgba(10, 8, 5, 0.55);
+    backdrop-filter: blur(4px);
+  }
+  .fl-rule {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic; font-weight: 400;
+    font-size: 14px; color: var(--accent-2);
+    white-space: nowrap;
+    line-height: 1.15;
+  }
+  .fl-tag {
+    font-size: 7.5px; letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--muted); margin-top: 3px;
+  }
+  .fl-connector {
+    position: absolute;
+    left: -40px; top: 50%;
+    width: 40px; height: 1px;
+    background: linear-gradient(to right, transparent, var(--accent));
+  }
+
+  /* ── Tooltip ── */
+  #tooltip {
+    position: fixed; z-index: 30;
+    padding: 9px 12px;
+    background: rgba(20, 16, 10, 0.92);
+    border: 1px solid var(--rule);
+    border-left: 2px solid var(--accent);
+    pointer-events: none;
+    opacity: 0; transition: opacity 0.15s;
+    min-width: 180px;
+  }
+  #tooltip.vis { opacity: 1; }
+  .tt-name {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; letter-spacing: 0.06em;
+    color: var(--accent-2); margin-bottom: 3px;
+  }
+  .tt-type {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic; font-size: 12px;
+    color: var(--paper); margin-bottom: 6px;
+  }
+  .tt-bar { height: 2px; background: var(--rule); overflow: hidden; }
+  .tt-fill { height: 100%; background: var(--accent-2); transition: width 0.3s; }
+  .tt-act { font-size: 8px; color: var(--muted); letter-spacing: 0.15em; margin-top: 5px; text-transform: uppercase; }
+
+  /* ── Hint ── */
+  #hint {
+    position: fixed; left: 50%; bottom: 22px;
+    transform: translateX(-50%);
+    font-size: 8px; letter-spacing: 0.3em; text-transform: uppercase;
+    color: var(--muted-2); z-index: 5;
+    transition: opacity 1s;
+  }
+  #hint.gone { opacity: 0; }
+
+  /* ornament */
+  .orn { color: var(--rule); font-size: 10px; letter-spacing: 0.4em; }
+</style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+
+<header class="masthead">
+  <div class="m-eyebrow">Harmonic Mind</div>
+  <div class="m-title">Mechanistic Interpretability in Harmonic Modeling</div>
+</header>
+
+<!-- Stats -->
+<div id="stats">
+  <div class="stat-row"><div class="stat-v" id="s-active">—</div><div class="stat-l">Active Features</div></div>
+  <div class="stat-row"><div class="stat-v" id="s-strong">—</div><div class="stat-l">Strong &gt; 60%</div></div>
+  <div class="stat-row"><div class="stat-v" id="s-total">512</div><div class="stat-l">Total in Lexicon</div></div>
+</div>
+
+<!-- Right panel -->
+<aside id="panel">
+  <div class="p-label">Select a piece</div>
+  <div class="ctabs" id="ctabs"></div>
+  <div id="piece-list"></div>
+</aside>
+
+<!-- Now playing -->
+<div id="now-playing">
+  <div id="np-eyebrow">Select a piece</div>
+  <div id="np-title">—</div>
+  <div id="np-sub">&nbsp;</div>
+</div>
+
+<!-- Legend -->
+<div id="legend">
+  <div class="leg-title">Features</div>
+  <div id="leg-items"></div>
+</div>
+
+<!-- Tooltip -->
+<div id="tooltip">
+  <div class="tt-name" id="tt-name">—</div>
+  <div class="tt-type" id="tt-type">—</div>
+  <div class="tt-bar"><div class="tt-fill" id="tt-fill" style="width:0%"></div></div>
+  <div class="tt-act" id="tt-act">—</div>
+</div>
+
+<div id="hint">drag to rotate ✦ hover to inspect</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ═════════════════════════════════════════════════════
+//  DATA (adapted from sae-feature-space.html, recolored warm)
+// ═════════════════════════════════════════════════════
+
+// 7 feature types with TAG/OT rule primitives + warm-palette colors
+// (derived from musicanalysis1.html copper accents)
+const FTYPES = [
+  { name:'Tonal Center',      short:'TONAL',   rgb:[0.93, 0.73, 0.39], rule:'S → T D',        tag:'Authentic cadence' },
+  { name:'Dominant Function', short:'DOM',     rgb:[0.97, 0.63, 0.20], rule:'D → V⁷ → T',     tag:'Dominant resolution' },
+  { name:'Chromatic Tension', short:'CHROM',   rgb:[0.77, 0.27, 0.13], rule:'*CHROM ≫ FAITH', tag:'OT chromatic constraint' },
+  { name:'Modal Mixture',     short:'MODAL',   rgb:[0.62, 0.35, 0.52], rule:'T → t (borrow)', tag:'Modal substitution' },
+  { name:'Voice Leading',     short:'VL',      rgb:[0.87, 0.80, 0.53], rule:'*PARALLEL-5',    tag:'Voice-leading constraint' },
+  { name:'Modulation',        short:'MODUL',   rgb:[0.88, 0.48, 0.22], rule:'T₁ ⇒ T₂ pivot',  tag:'Key change' },
+  { name:'Rhythmic Pattern',  short:'RHYTHM',  rgb:[0.70, 0.55, 0.35], rule:'β → β β',        tag:'Metric subdivision' },
+];
+
+// Named features (from source file)
+const NAMED = [
+  [  7,'TONIC_PREFERENCE',0],  [ 12,'SUBDOMINANT_FREQ',0],   [ 23,'ROOT_POSITION',0],
+  [ 47,'DOMINANT_AVOID',1],    [ 58,'V7_RESOLUTION',1],      [ 71,'DECEPTIVE_CADENCE',1],
+  [ 89,'CHROMATIC_TENSION',2], [ 94,'LEADING_TONE',2],       [112,'NEAPOLITAN_USE',2],
+  [134,'MODAL_MIXTURE',3],     [141,'BORROWED_CHORD',3],     [159,'PARALLEL_MINOR',3],
+  [178,'PARALLEL_MOTION',4],   [192,'SMOOTH_BASSLINE',4],    [207,'CONTRARY_MOTION',4],
+  [231,'PIVOT_MODULATION',5],  [248,'ENHARMONIC_SHIFT',5],   [267,'SEQUENCE_PATTERN',5],
+  [289,'METRIC_REGULARITY',6], [301,'SYNCOPATION',6],        [315,'HEMIOLA',6],
+];
+
+const PIECES = [
+  { composer:'Bach',      title:'WTC Prelude, BWV 846',     sub:'C major ✦ Prelude',            w:[0.95,0.65,0.08,0.10,0.90,0.28,0.60], d:0.44 },
+  { composer:'Bach',      title:'WTC Fugue, BWV 847',       sub:'C minor ✦ Fugue',              w:[0.80,0.78,0.22,0.15,0.95,0.42,0.72], d:0.50 },
+  { composer:'Bach',      title:'Invention No. 1, BWV 772', sub:'Two-part invention',           w:[0.92,0.72,0.10,0.10,0.86,0.32,0.56], d:0.42 },
+  { composer:'Bach',      title:'Chaconne, BWV 1004',       sub:'Partita No. 2, D minor',       w:[0.74,0.82,0.36,0.30,0.80,0.67,0.52], d:0.55 },
+  { composer:'Mozart',    title:'Piano Sonata K. 331',      sub:'Andante grazioso',             w:[0.93,0.55,0.05,0.08,0.82,0.20,0.66], d:0.38 },
+  { composer:'Mozart',    title:'Piano Sonata K. 545',      sub:'Allegro ✦ C major',            w:[0.96,0.58,0.05,0.06,0.86,0.16,0.62], d:0.36 },
+  { composer:'Mozart',    title:'Symphony No. 40',          sub:'K. 550 ✦ Molto Allegro',       w:[0.72,0.85,0.30,0.22,0.75,0.56,0.55], d:0.50 },
+  { composer:'Mozart',    title:'Requiem, K. 626',          sub:'Lacrimosa',                    w:[0.64,0.74,0.46,0.40,0.70,0.52,0.40], d:0.52 },
+  { composer:'Beethoven', title:'Moonlight Sonata',         sub:'Op. 27 ✦ Adagio sostenuto',    w:[0.60,0.82,0.56,0.50,0.65,0.72,0.36], d:0.52 },
+  { composer:'Beethoven', title:'Für Elise',                sub:'WoO 59 ✦ Poco moto',           w:[0.76,0.70,0.36,0.35,0.72,0.46,0.50], d:0.45 },
+  { composer:'Beethoven', title:'Eroica Symphony',          sub:'Op. 55 ✦ 1st movement',        w:[0.65,0.90,0.40,0.30,0.75,0.82,0.56], d:0.60 },
+  { composer:'Beethoven', title:'Appassionata',             sub:'Op. 57 ✦ Allegro assai',       w:[0.55,0.87,0.66,0.46,0.64,0.76,0.46], d:0.58 },
+  { composer:'Chopin',    title:'Nocturne Op. 9 No. 2',     sub:'Andante ✦ E♭ major',           w:[0.55,0.44,0.82,0.76,0.60,0.56,0.30], d:0.55 },
+  { composer:'Chopin',    title:'Ballade No. 1',            sub:'Op. 23 ✦ G minor',             w:[0.50,0.60,0.86,0.80,0.55,0.76,0.40], d:0.60 },
+  { composer:'Chopin',    title:'Prelude Op. 28 No. 4',     sub:'Largo ✦ E minor',              w:[0.44,0.48,0.92,0.86,0.50,0.62,0.24], d:0.57 },
+  { composer:'Chopin',    title:'Étude Op. 10 No. 3',       sub:'"Tristesse"',                  w:[0.60,0.50,0.83,0.70,0.66,0.55,0.35], d:0.53 },
+  { composer:'Brahms',    title:'Intermezzo Op. 118 No. 2', sub:'A major',                      w:[0.60,0.55,0.65,0.82,0.70,0.60,0.56], d:0.58 },
+  { composer:'Brahms',    title:'Ballade Op. 10 No. 1',     sub:'"Edward"',                     w:[0.54,0.65,0.72,0.86,0.64,0.66,0.50], d:0.60 },
+  { composer:'Brahms',    title:'Symphony No. 4',           sub:'Op. 98 ✦ Passacaglia',         w:[0.66,0.76,0.60,0.76,0.76,0.72,0.66], d:0.63 },
+  { composer:'Schubert',  title:'Impromptu Op. 90 No. 3',   sub:'Andante ✦ G♭ major',           w:[0.70,0.44,0.52,0.86,0.66,0.56,0.40], d:0.50 },
+  { composer:'Schubert',  title:'Moment Musical Op. 94',    sub:'No. 6 ✦ A♭ major',             w:[0.76,0.50,0.46,0.82,0.70,0.50,0.44], d:0.48 },
+  { composer:'Schubert',  title:'Der Erlkönig',             sub:'D. 328 ✦ G minor',             w:[0.50,0.70,0.76,0.70,0.60,0.82,0.55], d:0.60 },
+];
+
+const COMPOSERS = ['Bach','Mozart','Beethoven','Chopin','Brahms','Schubert'];
+
+function lcg(seed) {
+  let s = seed >>> 0;
+  return () => { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 0x100000000; };
+}
+
+function brainSDF(x, y, z) {
+  // main hemispheric ellipsoid (x=lateral, y=vertical, z=ant-post)
+  // head dims roughly 2.6 × 2.0 × 3.0
+  const rx = 2.3, ry = 1.75, rz = 2.8;
+  // longitudinal fissure: a shallow notch at x~0 on top
+  const fissure = Math.max(0, 0.22 - Math.abs(x)) * Math.max(0, y - 0.2) * 0.8;
+  const front = z < -1.5 ? 0.12 * (z + 1.5) : 0;
+  const bottom = y < -0.6 ? 0.25 * (y + 0.6) : 0;
+
+  const bumps =
+    0.08 * Math.sin(3.0 * x + 1.1) * Math.cos(2.7 * z) +
+    0.06 * Math.cos(2.4 * y + x * 1.2) +
+    0.05 * Math.sin(4.1 * z - y);
+
+  const effRx = rx + bumps - fissure;
+  const effRy = ry + bumps - fissure * 0.5 + bottom;
+  const effRz = rz + bumps + front;
+
+  const v = (x / effRx) ** 2 + (y / effRy) ** 2 + (z / effRz) ** 2;
+  if (v < 1.0) return true;
+
+  const cx = 0, cy = -1.1, cz = 2.0;
+  const cr = 0.95;
+  const cv = ((x-cx)/cr)**2 + ((y-cy)/(cr*0.75))**2 + ((z-cz)/(cr*0.9))**2;
+  if (cv < 1.0) return true;
+
+  const bx = 0, bz = 1.6;
+  const br = 0.35;
+  if (((x-bx)**2 + (z-bz)**2) < br*br && y < -0.6 && y > -2.0) return true;
+
+  return false;
+}
+
+// Feature cluster centroids — placed inside the brain (anatomical-ish regions)
+// x: lateral, y: vertical, z: ant-post (- = front)
+// Order must match FTYPES
+const CENTERS = [
+  [ 0.0,  0.4, -1.9 ],  // 0 Tonal        → medial frontal  (core tonal center)
+  [ 1.4, -0.2,  0.4 ],  // 1 Dominant     → right temporal (resolution/function)
+  [-1.2,  0.9, -0.8 ],  // 2 Chromatic    → left prefrontal
+  [-0.9, -0.4,  1.0 ],  // 3 Modal        → left posterior temporal
+  [ 0.0,  1.1,  0.3 ],  // 4 Voice Lead   → top / parietal midline
+  [ 1.3,  0.6, -1.2 ],  // 5 Modulation   → right frontal
+  [ 0.0, -1.1,  1.9 ],  // 6 Rhythm       → cerebellum
+];
+
+const N = 512;
+const rng = lcg(42);
+const TYPE_W = [0.20, 0.15, 0.15, 0.12, 0.18, 0.10, 0.10];
+
+const features = [];
+let attempts = 0;
+while (features.length < N && attempts < N * 40) {
+  attempts++;
+  // pick type by weight
+  const r = rng();
+  let t = 0, cum = 0;
+  for (let j = 0; j < 7; j++) { cum += TYPE_W[j]; if (r < cum) { t = j; break; } }
+  const c = CENTERS[t];
+
+  // Gaussian-ish cloud around center with modest spread
+  const spread = 0.9;
+  const gx = (rng() + rng() + rng() - 1.5) * spread;
+  const gy = (rng() + rng() + rng() - 1.5) * spread;
+  const gz = (rng() + rng() + rng() - 1.5) * spread;
+  const px = c[0] + gx;
+  const py = c[1] + gy;
+  const pz = c[2] + gz;
+
+  if (!brainSDF(px, py, pz)) continue;
+
+  features.push({
+    idx: features.length, type: t,
+    pos: [px, py, pz],
+    name: null, act: 0, tgt: 0, pulse: 0,
+  });
+}
+
+// Fill remainder (if brain rejection left us short) from surface-ish projection
+while (features.length < N) {
+  const t = Math.floor(rng() * 7);
+  const c = CENTERS[t];
+  features.push({
+    idx: features.length, type: t,
+    pos: [c[0] + (rng()-.5)*0.4, c[1] + (rng()-.5)*0.4, c[2] + (rng()-.5)*0.4],
+    name: null, act: 0, tgt: 0, pulse: 0,
+  });
+}
+
+NAMED.forEach(([idx, name, type]) => {
+  if (features[idx]) { features[idx].name = name; features[idx].type = type; }
+});
+
+// ═════════════════════════════════════════════════════
+//  THREE.JS SCENE
+// ═════════════════════════════════════════════════════
+
+const canvas = document.getElementById('canvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setClearColor(0x000000, 0);
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x0a0805, 0.055);
+
+const camera = new THREE.PerspectiveCamera(52, innerWidth/innerHeight, 0.1, 100);
+camera.position.set(0, 0.2, 8.8);
+camera.lookAt(0, 0, 0);
+
+function onResize() {
+  renderer.setSize(innerWidth, innerHeight);
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+}
+onResize(); addEventListener('resize', onResize);
+
+// Glow sprite
+function makeSprite(size=128) {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const cx = c.getContext('2d');
+  const g = cx.createRadialGradient(size/2,size/2,0, size/2,size/2,size/2);
+  g.addColorStop(0,    'rgba(255,255,255,1)');
+  g.addColorStop(0.18, 'rgba(255,255,255,0.82)');
+  g.addColorStop(0.45, 'rgba(255,255,255,0.28)');
+  g.addColorStop(0.78, 'rgba(255,255,255,0.06)');
+  g.addColorStop(1,    'rgba(255,255,255,0)');
+  cx.fillStyle = g; cx.fillRect(0,0,size,size);
+  return new THREE.CanvasTexture(c);
+}
+const sprite = makeSprite();
+
+const VERT = `
+  attribute float sz;
+  attribute vec3  col;
+  attribute float al;
+  varying vec3 vCol;
+  varying float vAl;
+  void main() {
+    vCol = col; vAl = al;
+    vec4 mv = modelViewMatrix * vec4(position, 1.0);
+    gl_PointSize = sz * (380.0 / -mv.z);
+    gl_Position  = projectionMatrix * mv;
+  }
+`;
+const FRAG = `
+  uniform sampler2D tex;
+  varying vec3 vCol;
+  varying float vAl;
+  void main() {
+    float a = texture2D(tex, gl_PointCoord).r * vAl;
+    if (a < 0.004) discard;
+    gl_FragColor = vec4(vCol, a);
+  }
+`;
+
+function makeGeo(n) {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
+  g.setAttribute('col', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
+  g.setAttribute('sz',  new THREE.BufferAttribute(new Float32Array(n), 1));
+  g.setAttribute('al',  new THREE.BufferAttribute(new Float32Array(n), 1));
+  return g;
+}
+function makeMat() {
+  return new THREE.ShaderMaterial({
+    uniforms: { tex: { value: sprite } },
+    vertexShader: VERT, fragmentShader: FRAG,
+    transparent: true, depthWrite: false,
+    blending: THREE.AdditiveBlending,
+  });
+}
+
+// Feature clouds (halo + core)
+const posArr = new Float32Array(N * 3);
+features.forEach((f, i) => { posArr[i*3]=f.pos[0]; posArr[i*3+1]=f.pos[1]; posArr[i*3+2]=f.pos[2]; });
+
+const geoA = makeGeo(N); geoA.attributes.position.array.set(posArr); geoA.attributes.position.needsUpdate = true;
+const geoB = makeGeo(N); geoB.attributes.position.array.set(posArr); geoB.attributes.position.needsUpdate = true;
+const cloudA = new THREE.Points(geoA, makeMat());
+const cloudB = new THREE.Points(geoB, makeMat());
+
+const group = new THREE.Group();
+group.add(cloudA, cloudB);
+scene.add(group);
+
+// Anatomical "mist" — a dense but faint cloud of tiny points filling the brain
+// to reveal its SHAPE even before any features fire
+{
+  const MIST = 2200;
+  const rngM = lcg(99);
+  const mp = [];
+  while (mp.length < MIST * 3) {
+    const x = (rngM()-.5) * 6;
+    const y = (rngM()-.5) * 4.5;
+    const z = (rngM()-.5) * 7;
+    if (brainSDF(x,y,z)) { mp.push(x,y,z); }
+  }
+  const mg = new THREE.BufferGeometry();
+  const mpArr = new Float32Array(mp);
+  const nm = mpArr.length / 3;
+  mg.setAttribute('position', new THREE.BufferAttribute(mpArr, 3));
+  const mc = new Float32Array(nm * 3);
+  const ms = new Float32Array(nm);
+  const ma = new Float32Array(nm);
+  for (let i=0;i<nm;i++) {
+    mc[i*3]   = 0.55; mc[i*3+1] = 0.42; mc[i*3+2] = 0.28;
+    ms[i] = 0.010 + rngM()*0.008;
+    ma[i] = 0.11 + rngM()*0.10;
+  }
+  mg.setAttribute('col', new THREE.BufferAttribute(mc, 3));
+  mg.setAttribute('sz',  new THREE.BufferAttribute(ms, 1));
+  mg.setAttribute('al',  new THREE.BufferAttribute(ma, 1));
+  const mist = new THREE.Points(mg, makeMat());
+  group.add(mist);
+}
+
+// Surface shell — denser points ON the boundary to show the convolutions
+{
+  const SURF = 1400;
+  const rngS = lcg(131);
+  const sp = [];
+  let tries = 0;
+  while (sp.length < SURF * 3 && tries < SURF * 80) {
+    tries++;
+    const x = (rngS()-.5) * 6;
+    const y = (rngS()-.5) * 4.5;
+    const z = (rngS()-.5) * 7;
+    if (!brainSDF(x,y,z)) continue;
+    // "near surface" test: check if one of the 6 axial neighbours is outside
+    const d = 0.14;
+    const nearSurf = !brainSDF(x+d,y,z) || !brainSDF(x-d,y,z)
+                  || !brainSDF(x,y+d,z) || !brainSDF(x,y-d,z)
+                  || !brainSDF(x,y,z+d) || !brainSDF(x,y,z-d);
+    if (!nearSurf) continue;
+    sp.push(x,y,z);
+  }
+  const sg = new THREE.BufferGeometry();
+  const spArr = new Float32Array(sp);
+  const ns = spArr.length / 3;
+  sg.setAttribute('position', new THREE.BufferAttribute(spArr, 3));
+  const sc = new Float32Array(ns * 3);
+  const sz = new Float32Array(ns);
+  const sa = new Float32Array(ns);
+  for (let i=0;i<ns;i++) {
+    // warm paper tone
+    sc[i*3]   = 0.78; sc[i*3+1] = 0.62; sc[i*3+2] = 0.42;
+    sz[i] = 0.013 + rngS()*0.010;
+    sa[i] = 0.22 + rngS()*0.18;
+  }
+  sg.setAttribute('col', new THREE.BufferAttribute(sc, 3));
+  sg.setAttribute('sz',  new THREE.BufferAttribute(sz, 1));
+  sg.setAttribute('al',  new THREE.BufferAttribute(sa, 1));
+  const shell = new THREE.Points(sg, makeMat());
+  shell.userData.isShell = true;
+  group.add(shell);
+  window.__shell = { geo: sg, count: ns };
+}
+
+// Far starfield
+{
+  const ns = 500, rng2 = lcg(77);
+  const pp = new Float32Array(ns*3), cc = new Float32Array(ns*3);
+  const ss = new Float32Array(ns),   aa = new Float32Array(ns);
+  for (let i=0;i<ns;i++){
+    const R=15+rng2()*22, th=rng2()*Math.PI*2, ph=Math.acos(2*rng2()-1);
+    pp[i*3]=R*Math.sin(ph)*Math.cos(th);
+    pp[i*3+1]=R*Math.sin(ph)*Math.sin(th);
+    pp[i*3+2]=R*Math.cos(ph);
+    const v=0.35+rng2()*0.4;
+    cc[i*3]=v*1.05; cc[i*3+1]=v*0.95; cc[i*3+2]=v*0.7;
+    ss[i]=0.005+rng2()*0.010; aa[i]=0.18+rng2()*0.35;
+  }
+  const sg=new THREE.BufferGeometry();
+  sg.setAttribute('position',new THREE.BufferAttribute(pp,3));
+  sg.setAttribute('col',new THREE.BufferAttribute(cc,3));
+  sg.setAttribute('sz', new THREE.BufferAttribute(ss,1));
+  sg.setAttribute('al', new THREE.BufferAttribute(aa,1));
+  scene.add(new THREE.Points(sg, makeMat()));
+}
+
+// ═════════════════════════════════════════════════════
+//  INTERACTION — drag-rotate + hover
+// ═════════════════════════════════════════════════════
+
+let dragging=false, pmx=0, pmy=0;
+let rotY=0.3, rotX=0.05, tgtY=0.3, tgtX=0.05;
+let autoSpin=true;
+
+canvas.addEventListener('mousedown', e => {
+  dragging=true; autoSpin=false;
+  pmx=e.clientX; pmy=e.clientY;
+  document.getElementById('hint').classList.add('gone');
+});
+addEventListener('mouseup',   () => dragging=false);
+canvas.addEventListener('mouseleave', () => dragging=false);
+canvas.addEventListener('mousemove', e => {
+  if (dragging) {
+    tgtY += (e.clientX-pmx)*0.006;
+    tgtX += (e.clientY-pmy)*0.006;
+    tgtX = Math.max(-0.9, Math.min(0.9, tgtX));
+    pmx=e.clientX; pmy=e.clientY;
+  }
+  doHover(e);
+});
+canvas.addEventListener('touchstart', e => {
+  dragging=true; autoSpin=false;
+  pmx=e.touches[0].clientX; pmy=e.touches[0].clientY;
+  document.getElementById('hint').classList.add('gone');
+}, {passive:true});
+canvas.addEventListener('touchend', () => dragging=false, {passive:true});
+canvas.addEventListener('touchmove', e => {
+  if (!dragging) return;
+  tgtY += (e.touches[0].clientX-pmx)*0.006;
+  tgtX += (e.touches[0].clientY-pmy)*0.006;
+  pmx=e.touches[0].clientX; pmy=e.touches[0].clientY;
+}, {passive:true});
+
+const ray = new THREE.Raycaster();
+ray.params.Points = { threshold: 0.14 };
+const mouse2 = new THREE.Vector2();
+const tt = document.getElementById('tooltip');
+
+function doHover(e) {
+  mouse2.x =  (e.clientX/innerWidth)*2-1;
+  mouse2.y = -(e.clientY/innerHeight)*2+1;
+  ray.setFromCamera(mouse2, camera);
+  const hits = ray.intersectObject(cloudA);
+  if (hits.length) {
+    const f = features[hits[0].index];
+    const ft = FTYPES[f.type];
+    const pct = Math.round(Math.max(0, Math.min(1, f.act)) * 100);
+    document.getElementById('tt-name').textContent = f.name || `FEATURE_${String(f.idx).padStart(3,'0')}`;
+    document.getElementById('tt-type').textContent = ft.name;
+    document.getElementById('tt-act').textContent  = f.act > 0.01 ? `Activation ✦ ${pct}%` : 'Inactive';
+    document.getElementById('tt-fill').style.width = pct + '%';
+    tt.style.left = (e.clientX+16)+'px';
+    tt.style.top  = (e.clientY-10)+'px';
+    tt.classList.add('vis');
+    canvas.style.cursor='crosshair';
+  } else {
+    tt.classList.remove('vis');
+    canvas.style.cursor='default';
+  }
+}
+
+// ═════════════════════════════════════════════════════
+//  PIECE SELECTION — activations + PULSE
+// ═════════════════════════════════════════════════════
+
+let currentPiece = -1;
+let pendingTOs = [];
+
+function pieceRng(p) {
+  const seed = p.title.split('').reduce((a,c)=>a*31+c.charCodeAt(0),0) >>> 0;
+  return lcg(seed);
+}
+
+function getActivations(piece) {
+  const r = pieceRng(piece);
+  return features.map(f => {
+    const w = piece.w[f.type];
+    const roll = r();
+    const thr = 1 - piece.d - w * 0.35;
+    if (roll > 1 - thr) return 0;
+    return w * (0.45 + r() * 0.55);
+  });
+}
+
+function selectPiece(i) {
+  currentPiece = i;
+  const p = PIECES[i];
+  document.getElementById('np-eyebrow').textContent = p.composer;
+  document.getElementById('np-title').textContent = p.title;
+  document.getElementById('np-sub').textContent = p.sub;
+
+  const acts = getActivations(p);
+  pendingTOs.forEach(clearTimeout);
+  pendingTOs = [];
+
+  // Radial pulse wave — delay proportional to distance from brain centroid
+  // per cluster centroid, so each "lobe" fires as the wave reaches it.
+  features.forEach((f, fi) => {
+    const c = CENTERS[f.type];
+    const d = Math.hypot(c[0], c[1], c[2]);
+    const jitter = Math.random() * 220;
+    const delay = d * 120 + jitter;
+    pendingTOs.push(setTimeout(() => {
+      f.tgt = acts[fi];
+      f.pulse = acts[fi] > 0.05 ? 1.0 : 0; // kick the pulse
+    }, delay));
+  });
+
+  setTimeout(() => {
+    const active = acts.filter(a => a > 0.05).length;
+    const strong = acts.filter(a => a > 0.60).length;
+    document.getElementById('s-active').textContent = active;
+    document.getElementById('s-strong').textContent = strong;
+  }, 900);
+
+  document.querySelectorAll('.pitem').forEach((el, j) => el.classList.toggle('active', j === i));
+}
+
+// ═════════════════════════════════════════════════════
+//  UI
+// ═════════════════════════════════════════════════════
+
+let activeComposer = 'Bach';
+
+function buildTabs() {
+  const el = document.getElementById('ctabs');
+  COMPOSERS.forEach(c => {
+    const b = document.createElement('button');
+    b.className = 'ctab' + (c===activeComposer?' active':'');
+    b.textContent = c;
+    b.addEventListener('click', () => {
+      activeComposer = c;
+      document.querySelectorAll('.ctab').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+      buildList();
+    });
+    el.appendChild(b);
+  });
+}
+function buildList() {
+  const el = document.getElementById('piece-list');
+  el.innerHTML = '';
+  PIECES.forEach((p, i) => {
+    if (p.composer !== activeComposer) return;
+    const d = document.createElement('div');
+    d.className = 'pitem' + (i===currentPiece?' active':'');
+    d.innerHTML = `<div class="pt">${p.title}</div><div class="ps">${p.sub}</div>`;
+    d.addEventListener('click', () => selectPiece(i));
+    el.appendChild(d);
+  });
+}
+function buildLegend() {
+  const el = document.getElementById('leg-items');
+  FTYPES.forEach(ft => {
+    const [r,g,b] = ft.rgb.map(v=>Math.round(v*255));
+    const row = document.createElement('div');
+    row.className = 'leg-row';
+    row.innerHTML = `
+      <div class="leg-dot" style="background:rgb(${r},${g},${b});box-shadow:0 0 8px rgba(${r},${g},${b},0.9)"></div>
+      <span>${ft.name}</span>
+    `;
+    el.appendChild(row);
+  });
+}
+
+// Floating cluster labels (TAG rules / OT primitives)
+const floatingLabels = FTYPES.map((ft, i) => {
+  const el = document.createElement('div');
+  el.className = 'floating-label';
+  el.innerHTML = `
+    <div class="fl-inner">
+      <div class="fl-connector"></div>
+      <div class="fl-rule">${ft.rule}</div>
+      <div class="fl-tag">${ft.short} ✦ ${ft.tag}</div>
+    </div>
+  `;
+  document.body.appendChild(el);
+  return el;
+});
+
+buildTabs(); buildList(); buildLegend();
+
+// ═════════════════════════════════════════════════════
+//  COLOUR UPDATE (per-frame)
+// ═════════════════════════════════════════════════════
+
+function updateColors() {
+  const cA=geoA.attributes.col.array, sA=geoA.attributes.sz.array, aA=geoA.attributes.al.array;
+  const cB=geoB.attributes.col.array, sB=geoB.attributes.sz.array, aB=geoB.attributes.al.array;
+
+  features.forEach((f, i) => {
+    const a = f.act;
+    const pb = f.pulse; // pulse boost
+    const [r,g,b] = FTYPES[f.type].rgb;
+
+    // Halo
+    const dim = 0.10 + a*0.72 + pb*0.35;
+    cA[i*3]   = Math.min(1, r*dim);
+    cA[i*3+1] = Math.min(1, g*dim);
+    cA[i*3+2] = Math.min(1, b*dim);
+    sA[i] = 0.028 + a*0.18 + pb*0.28;
+    aA[i] = 0.14  + a*0.65 + pb*0.30;
+
+    // Core
+    const bright = 0.40 + a*0.60;
+    cB[i*3]   = Math.min(1, r*bright + a*0.20 + pb*0.3);
+    cB[i*3+1] = Math.min(1, g*bright + a*0.12 + pb*0.2);
+    cB[i*3+2] = Math.min(1, b*bright + a*0.08);
+    sB[i] = 0.005 + a*0.042 + pb*0.05;
+    aB[i] = a>0.02 ? 0.55 + a*0.45 : 0.10;
+  });
+
+  geoA.attributes.col.needsUpdate=true; geoA.attributes.sz.needsUpdate=true; geoA.attributes.al.needsUpdate=true;
+  geoB.attributes.col.needsUpdate=true; geoB.attributes.sz.needsUpdate=true; geoB.attributes.al.needsUpdate=true;
+}
+
+// ═════════════════════════════════════════════════════
+//  LABEL POSITIONING (project 3D centroids to screen)
+// ═════════════════════════════════════════════════════
+
+const _v = new THREE.Vector3();
+// Safe zone: keep labels away from page chrome
+// Chrome occupies: top 80px (masthead), left 0–180 top portion (stats),
+// right 280px (panel), bottom-left 0–460 / bottom 90px (now-playing),
+// bottom-right 280px (legend)
+function getSafeRect() {
+  const PAD = 18;
+  const LABEL_W = 210, LABEL_H = 56;
+  return {
+    left:   200 + PAD,                    // past stats column
+    right:  innerWidth - 280 - PAD - LABEL_W,  // before panel
+    top:    80 + PAD,                     // below masthead
+    bottom: innerHeight - 90 - PAD - LABEL_H,  // above now-playing/legend
+    w: LABEL_W, h: LABEL_H,
+  };
+}
+
+function updateLabels() {
+  const sr = getSafeRect();
+  FTYPES.forEach((ft, i) => {
+    const c = CENTERS[i];
+    _v.set(c[0], c[1], c[2]);
+    _v.applyMatrix4(group.matrixWorld);
+    const worldZ = _v.z;
+    _v.project(camera);
+    const sx = (_v.x * 0.5 + 0.5) * innerWidth;
+    const sy = (-_v.y * 0.5 + 0.5) * innerHeight;
+
+    const cx = innerWidth/2, cy = innerHeight/2;
+    const dx = sx - cx, dy = sy - cy;
+    const len = Math.hypot(dx, dy) || 1;
+    const pushOut = 90;
+    let lx = sx + (dx/len) * pushOut;
+    let ly = sy + (dy/len) * pushOut;
+
+    // clamp to safe zone
+    lx = Math.max(sr.left, Math.min(sr.right, lx));
+    ly = Math.max(sr.top,  Math.min(sr.bottom, ly));
+
+    const el = floatingLabels[i];
+    el.style.left = lx + 'px';
+    el.style.top  = ly + 'px';
+    const inFront = worldZ > -0.2;
+    el.style.opacity = inFront ? '0.95' : '0.15';
+  });
+}
+
+// ═════════════════════════════════════════════════════
+//  ANIMATION LOOP
+// ═════════════════════════════════════════════════════
+
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const t = clock.getElapsedTime();
+
+  if (autoSpin) tgtY += 0.0020;
+
+  rotY += (tgtY - rotY) * 0.045;
+  rotX += (tgtX - rotX) * 0.045;
+  group.rotation.y = rotY;
+  group.rotation.x = rotX;
+  group.updateMatrixWorld();
+
+  // breath pulse on strongly-active features
+  const breath = Math.sin(t * 1.8) * 0.06;
+  features.forEach(f => {
+    f.act += (f.tgt - f.act) * 0.045;
+    if (f.tgt > 0.4) f.act += breath * f.tgt * 0.35;
+    // decay pulse kick
+    f.pulse *= 0.93;
+  });
+
+  updateColors();
+  updateLabels();
+  renderer.render(scene, camera);
+}
+animate();
+
+// auto-select first piece
+setTimeout(() => selectPiece(0), 700);
+</script>
+</body>
+</html>
